@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\User\Auth\AuthController;
 use App\Http\Controllers\User\DashboardController;
+use App\Http\Controllers\User\CommonComplaintController;
+use App\Http\Controllers\Admin\CommonComplaintController as AdminCommonComplaintController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('user/dashboard', function () {
@@ -11,9 +13,13 @@ Route::get('user/dashboard', function () {
 //     return view('user.auth.login');
 // })->name('login');
 
-Route::get('user/action', function () {
-    return view('user.action');
-})->name('action');
+Route::get('user/action', [DashboardController::class, 'action'])->name('action');
+
+// User complaint routes
+Route::get('common-complaint-create', [CommonComplaintController::class, 'create'])->name('complaint.create');
+Route::post('common-complaint-store', [CommonComplaintController::class, 'store'])->name('complaint.store');
+Route::get('complaint-success', [CommonComplaintController::class, 'success'])->name('complaint.success');
+Route::get('common-complaint/{id}/form-data', [CommonComplaintController::class, 'getFormData'])->name('complaint.form-data');
 
 Route::get('test', [AuthController::class, 'index'])->name('test');
 

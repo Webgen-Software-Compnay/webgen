@@ -7,6 +7,7 @@
 @yield('css')
 
 <!-- Core JS files -->
+<script src="{{ asset('assets/admin/js/jquery/jquery.min.js') }}"></script>
 <script src="{{ asset('assets/admin/demo/demo_configurator.js') }}"></script>
 <script src="{{ asset('assets/admin/js/bootstrap/bootstrap.bundle.min.js') }}"></script>
 <!-- /core JS files -->
@@ -15,6 +16,7 @@
 
 <!-- Theme JS files -->
 <script src="{{ asset('assets/admin/js/app.js') }}"></script>
+<script src="{{ asset('assets/admin/js/sidebar-active-state.js') }}"></script>
 <!-- /theme JS files -->
 
 @yield('scripts')

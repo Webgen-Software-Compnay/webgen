@@ -24,7 +24,7 @@ const DatatableAPI = function() {
         });
 
         $('.datatable-column-search-inputs').DataTable({
-            ajax: '/api/complaint-categories', 
+            ajax: 'http://127.0.0.1:8080/api/public/complaint-categories', 
             columns: [
                 { data: 'id' },
                 { data: 'category_name' },

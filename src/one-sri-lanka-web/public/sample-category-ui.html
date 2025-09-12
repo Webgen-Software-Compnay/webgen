@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sample Complaint Category Selection UI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .hero-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 0;
+        }
+        .complaint-category {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid #e9ecef;
+            height: 100%;
+        }
+        .complaint-category:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+        .complaint-category.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .category-icon {
+            width: 60px;
+            height: 60px;
+            background: #f8f9fa;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 1.5rem;
+            color: #667eea;
+        }
+        .complaint-category.selected .category-icon {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 3rem;
+        }
+        .step {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #dee2e6;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin: 0 1rem;
+            position: relative;
+        }
+        .step.active {
+            background: #667eea;
+            color: white;
+        }
+        .step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 100%;
+            width: 2rem;
+            height: 2px;
+            background: #dee2e6;
+            transform: translateY(-50%);
+        }
+        .step.active:not(:last-child)::after {
+            background: #667eea;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+<!-- Hero Section -->
+<div class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="display-5 fw-bold mb-3">Sample Complaint Category Selection</h1>
+                <p class="lead mb-4">This demonstrates the UI for selecting complaint categories.</p>
+            </div>
+            <div class="col-lg-4 text-center">
+                <div class="d-inline-block p-4 bg-white bg-opacity-10 rounded-circle">
+                    <i class="fas fa-clipboard-list fa-4x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container mt-5">
+    <!-- Step Indicator -->
+    <div class="step-indicator">
+        <div class="step active" id="step1">1</div>
+        <div class="step" id="step2">2</div>
+        <div class="step" id="step3">3</div>
+        <div class="step" id="step4">4</div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="bg-white rounded-4 shadow-sm p-4">
+                <h3 class="text-center mb-4">Select Complaint Category</h3>
+                <p class="text-center text-muted mb-5">Choose the category that best describes your issue</p>
+                
+                <div class="row" id="categoriesContainer">
+                    <!-- Categories will be loaded here -->
+                </div>
+                
+                <div class="text-center mt-4">
+                    <button class="btn btn-primary btn-lg" onclick="continueToNext()" disabled id="continueBtn">
+                        Continue <i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                </div>
+                
+                <div id="selectedInfo" class="mt-4" style="display: none;">
+                    <div class="alert alert-info">
+                        <strong>Selected:</strong> <span id="selectedCategoryText"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+// Sample categories data (same as what would come from the API)
+const sampleCategories = [
+    {
+        id: 1,
+        name: 'Transportation',
+        description: 'Issues with public transport, roads, traffic',
+        icon: 'fas fa-bus'
+    },
+    {
+        id: 2,
+        name: 'Infrastructure',
+        description: 'Problems with buildings, bridges, facilities',
+        icon: 'fas fa-road'
+    },
+    {
+        id: 3,
+        name: 'Utilities',
+        description: 'Water, electricity, gas supply issues',
+        icon: 'fas fa-tint'
+    },
+    {
+        id: 4,
+        name: 'Education',
+        description: 'School facilities, educational services',
+        icon: 'fas fa-graduation-cap'
+    },
+    {
+        id: 5,
+        name: 'Healthcare',
+        description: 'Hospital services, medical facilities',
+        icon: 'fas fa-hospital'
+    },
+    {
+        id: 6,
+        name: 'Environment',
+        description: 'Pollution, waste management, conservation',
+        icon: 'fas fa-leaf'
+    },
+    {
+        id: 7,
+        name: 'Public Safety',
+        description: 'Security, emergency services, crime',
+        icon: 'fas fa-shield-alt'
+    },
+    {
+        id: 8,
+        name: 'Government Services',
+        description: 'Administrative services, documentation',
+        icon: 'fas fa-building'
+    }
+];
+
+let selectedCategory = null;
+
+function renderCategories() {
+    const container = document.getElementById('categoriesContainer');
+    container.innerHTML = '';
+
+    sampleCategories.forEach(category => {
+        const categoryHtml = `
+            <div class="col-md-3 col-sm-6 mb-4">
+                <div class="complaint-category" onclick="selectCategory(${category.id}, '${category.name}')" data-category-id="${category.id}">
+                    <div class="category-icon">
+                        <i class="${category.icon}"></i>
+                    </div>
+                    <h6>${category.name}</h6>
+                    <p class="small text-muted">${category.description}</p>
+                </div>
+            </div>
+        `;
+        container.innerHTML += categoryHtml;
+    });
+}
+
+function selectCategory(categoryId, categoryName) {
+    // Remove previous selection
+    document.querySelectorAll('.complaint-category').forEach(el => {
+        el.classList.remove('selected');
+    });
+
+    // Add selection to clicked category
+    document.querySelector(`[data-category-id="${categoryId}"]`).classList.add('selected');
+    
+    selectedCategory = { id: categoryId, name: categoryName };
+    document.getElementById('selectedCategoryText').textContent = categoryName;
+    document.getElementById('selectedInfo').style.display = 'block';
+    document.getElementById('continueBtn').disabled = false;
+    
+    console.log('Selected category:', selectedCategory);
+}
+
+function continueToNext() {
+    if (selectedCategory) {
+        alert(`You selected: ${selectedCategory.name}\\n\\nIn the real form, this would proceed to show common complaints for this category.`);
+        
+        // Simulate going to the education complaints
+        if (selectedCategory.id === 4) {
+            window.location.href = '/common-complaint-create?category_id=4&category=education&category_name=Education&common_complaint_id=7&common_complaint_title=School+Facility+Issues';
+        }
+    }
+}
+
+// Load categories on page load
+document.addEventListener('DOMContentLoaded', function() {
+    renderCategories();
+});
+</script>
+
+</body>
+</html>

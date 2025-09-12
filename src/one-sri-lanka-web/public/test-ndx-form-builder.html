@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NDX Dynamic Form Builder Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <style>
+        .field-preview {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            background: #f8f9fa;
+        }
+        .api-status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 5px 0;
+        }
+        .api-success { background: #d4edda; color: #155724; }
+        .api-error { background: #f8d7da; color: #721c24; }
+        .loading { opacity: 0.6; }
+        
+        /* Enhanced Select2 styling for test page */
+        .select2-container {
+            width: 100% !important;
+        }
+        
+        .select2-container--default .select2-selection--single {
+            height: 38px;
+            line-height: 36px;
+            border: 1px solid #ced4da;
+            border-radius: 0.375rem;
+        }
+        
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #495057;
+            padding-left: 12px;
+        }
+        
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 36px;
+            right: 10px;
+        }
+        
+        .select2-dropdown {
+            border: 1px solid #ced4da;
+            border-radius: 0.375rem;
+        }
+        
+        .select2-results__option {
+            padding: 8px 12px;
+        }
+        
+        .select2-results__option--highlighted[aria-selected] {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        /* Search demo styling */
+        .search-demo {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        
+        .search-demo h6 {
+            color: #495057;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .demo-description {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">NDX Dynamic Form Builder Test</h1>
+        
+        <!-- API Health Check -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>API Health Check</h5>
+            </div>
+            <div class="card-body">
+                <button id="healthCheck" class="btn btn-primary">Check API Health</button>
+                <div id="healthStatus" class="mt-3"></div>
+            </div>
+        </div>
+
+        <!-- NDX Data Test -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>NDX Data Sources Test</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <button class="btn btn-outline-primary w-100 mb-2" onclick="testNdxEndpoint('hospitals')">Test Hospitals</button>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-outline-primary w-100 mb-2" onclick="testNdxEndpoint('police-stations')">Test Police</button>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-outline-primary w-100 mb-2" onclick="testNdxEndpoint('schools')">Test Schools</button>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-outline-primary w-100 mb-2" onclick="testNdxEndpoint('government-offices')">Test Gov Offices</button>
+                    </div>
+                </div>
+                <div id="ndxResults" class="mt-3"></div>
+            </div>
+        </div>
+
+        <!-- Search Capabilities Demo -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>🔍 Advanced Search Capabilities Demo</h5>
+                <p class="mb-0 text-muted">Demonstration of searchable dropdowns with large datasets</p>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="search-demo">
+                            <h6>🏥 Hospital Search (Searchable)</h6>
+                            <p class="demo-description">Type "national" or "teaching" to filter hospitals. Shows district and type information.</p>
+                            <select id="hospitalSearch" class="form-select" style="width: 100%">
+                                <option value="">Loading hospitals...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="search-demo">
+                            <h6>🚔 Police Station Search (Searchable)</h6>
+                            <p class="demo-description">Search by station name or district. Includes contact information.</p>
+                            <select id="policeSearch" class="form-select" style="width: 100%">
+                                <option value="">Loading police stations...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="search-demo">
+                            <h6>🏫 School Search (Searchable)</h6>
+                            <p class="demo-description">Find schools by name or type. Shows education zones.</p>
+                            <select id="schoolSearch" class="form-select" style="width: 100%">
+                                <option value="">Loading schools...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="search-demo">
+                            <h6>🏛️ Government Office Search (Searchable)</h6>
+                            <p class="demo-description">Search administrative offices by type or location.</p>
+                            <select id="govOfficeSearch" class="form-select" style="width: 100%">
+                                <option value="">Loading government offices...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="alert alert-info">
+                        <strong>💡 Search Features:</strong>
+                        <ul class="mb-0">
+                            <li>Type minimum 2 characters to start searching</li>
+                            <li>Search by name, district, or type</li>
+                            <li>Enhanced display with contact information</li>
+                            <li>Fallback to basic filtering when Select2 unavailable</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Geographic Data Test -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Geographic Data Test</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label>Province</label>
+                        <select id="provinceSelect" class="form-select">
+                            <option value="">Select Province</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label>District</label>
+                        <select id="districtSelect" class="form-select">
+                            <option value="">Select District</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label>DS Division</label>
+                        <select id="dsSelect" class="form-select">
+                            <option value="">Select DS</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label>GN Division</label>
+                        <select id="gnSelect" class="form-select">
+                            <option value="">Select GN</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="geographicResults" class="mt-3"></div>
+            </div>
+        </div>
+
+        <!-- Dynamic Form Builder Test -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Dynamic Form Builder Demo</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Quick Field Creation</h6>
+                        <button class="btn btn-success me-2 mb-2" onclick="addQuickField('text')">Add Text Field</button>
+                        <button class="btn btn-success me-2 mb-2" onclick="addQuickField('ndx_hospitals')">Add Hospitals</button>
+                        <button class="btn btn-success me-2 mb-2" onclick="addQuickField('ndx_police')">Add Police Stations</button>
+                        <button class="btn btn-success me-2 mb-2" onclick="addQuickField('geographic_province')">Add Provinces</button>
+                        <button class="btn btn-warning me-2 mb-2" onclick="clearForm()">Clear Form</button>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Form Preview</h6>
+                        <div id="formPreview" class="border rounded p-3" style="min-height: 200px;">
+                            <p class="text-muted">Add fields to see preview...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
+    <script>
+        // API Base URL - adjust according to your Laravel setup
+        const API_BASE = '/api';
+        
+        // Form builder for testing
+        let formFields = [];
+        
+        // Health Check
+        document.getElementById('healthCheck').addEventListener('click', async function() {
+            const button = this;
+            const statusDiv = document.getElementById('healthStatus');
+            
+            button.disabled = true;
+            button.textContent = 'Checking...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/system/health`);
+                const data = await response.json();
+                
+                statusDiv.innerHTML = `
+                    <div class="api-status api-success">
+                        <strong>✓ API is healthy</strong><br>
+                        Status: ${data.status}<br>
+                        Services: ${Object.entries(data.services).map(([k,v]) => `${k}: ${v}`).join(', ')}
+                    </div>
+                `;
+            } catch (error) {
+                statusDiv.innerHTML = `
+                    <div class="api-status api-error">
+                        <strong>✗ API Health Check Failed</strong><br>
+                        Error: ${error.message}
+                    </div>
+                `;
+            }
+            
+            button.disabled = false;
+            button.textContent = 'Check API Health';
+        });
+        
+        // NDX Endpoint Testing
+        async function testNdxEndpoint(endpoint) {
+            const resultsDiv = document.getElementById('ndxResults');
+            
+            try {
+                const response = await fetch(`${API_BASE}/ndx/${endpoint}`);
+                const data = await response.json();
+                
+                resultsDiv.innerHTML = `
+                    <div class="api-status api-success">
+                        <strong>✓ ${endpoint} endpoint working</strong><br>
+                        Records: ${data.data.length}<br>
+                        Sample: ${data.data.slice(0, 3).map(item => item.name).join(', ')}...
+                    </div>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="api-status api-error">
+                        <strong>✗ ${endpoint} endpoint failed</strong><br>
+                        Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // Geographic Data Cascade
+        async function loadProvinces() {
+            try {
+                const response = await fetch(`${API_BASE}/geographic/provinces`);
+                const data = await response.json();
+                
+                const select = document.getElementById('provinceSelect');
+                select.innerHTML = '<option value="">Select Province</option>';
+                
+                data.data.forEach(province => {
+                    select.innerHTML += `<option value="${province.id}">${province.name}</option>`;
+                });
+            } catch (error) {
+                console.error('Failed to load provinces:', error);
+            }
+        }
+        
+        // Load districts based on province
+        document.getElementById('provinceSelect').addEventListener('change', async function() {
+            const provinceId = this.value;
+            const districtSelect = document.getElementById('districtSelect');
+            const dsSelect = document.getElementById('dsSelect');
+            const gnSelect = document.getElementById('gnSelect');
+            
+            // Clear dependent selects
+            districtSelect.innerHTML = '<option value="">Select District</option>';
+            dsSelect.innerHTML = '<option value="">Select DS</option>';
+            gnSelect.innerHTML = '<option value="">Select GN</option>';
+            
+            if (!provinceId) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/geographic/districts?province=${provinceId}`);
+                const data = await response.json();
+                
+                data.data.forEach(district => {
+                    districtSelect.innerHTML += `<option value="${district.id}">${district.name}</option>`;
+                });
+            } catch (error) {
+                console.error('Failed to load districts:', error);
+            }
+        });
+        
+        // Quick field creation for demo
+        function addQuickField(type) {
+            const fieldId = 'field_' + Date.now();
+            let field;
+            
+            switch (type) {
+                case 'text':
+                    field = {
+                        id: fieldId,
+                        type: 'text',
+                        name: 'sample_text',
+                        label: 'Sample Text Field',
+                        required: false
+                    };
+                    break;
+                    
+                case 'ndx_hospitals':
+                    field = {
+                        id: fieldId,
+                        type: 'ndx_hospitals',
+                        name: 'hospital',
+                        label: 'Select Hospital',
+                        required: true,
+                        ndx_config: {
+                            endpoint: 'hospitals',
+                            value_field: 'id',
+                            display_field: 'name'
+                        }
+                    };
+                    break;
+                    
+                case 'ndx_police':
+                    field = {
+                        id: fieldId,
+                        type: 'ndx_police_stations',
+                        name: 'police_station',
+                        label: 'Select Police Station',
+                        required: true,
+                        ndx_config: {
+                            endpoint: 'police-stations',
+                            value_field: 'id',
+                            display_field: 'name'
+                        }
+                    };
+                    break;
+                    
+                case 'geographic_province':
+                    field = {
+                        id: fieldId,
+                        type: 'geographic_provinces',
+                        name: 'province',
+                        label: 'Select Province',
+                        required: true,
+                        geographic_config: {
+                            endpoint: 'provinces',
+                            value_field: 'id',
+                            display_field: 'name'
+                        }
+                    };
+                    break;
+            }
+            
+            formFields.push(field);
+            renderFormPreview();
+        }
+        
+        function clearForm() {
+            formFields = [];
+            renderFormPreview();
+        }
+        
+        function renderFormPreview() {
+            const preview = document.getElementById('formPreview');
+            
+            if (formFields.length === 0) {
+                preview.innerHTML = '<p class="text-muted">Add fields to see preview...</p>';
+                return;
+            }
+            
+            let html = '<form>';
+            formFields.forEach(field => {
+                html += `
+                    <div class="field-preview">
+                        <label class="form-label">
+                            ${field.label} ${field.required ? '<span class="text-danger">*</span>' : ''}
+                        </label>
+                        <div class="text-muted small">Type: ${field.type}</div>
+                        ${renderFieldInput(field)}
+                        <button type="button" class="btn btn-sm btn-danger mt-2" onclick="removeField('${field.id}')">Remove</button>
+                    </div>
+                `;
+            });
+            html += '</form>';
+            
+            preview.innerHTML = html;
+            
+            // Initialize any select fields that need API data
+            initializeApiFields();
+        }
+        
+        function renderFieldInput(field) {
+            switch (field.type) {
+                case 'text':
+                    return `<input type="text" class="form-control" placeholder="Enter ${field.label.toLowerCase()}">`;
+                    
+                case 'ndx_hospitals':
+                case 'ndx_police_stations':
+                case 'geographic_provinces':
+                    return `<select class="form-select api-field" data-field-type="${field.type}" data-endpoint="${field.ndx_config?.endpoint || field.geographic_config?.endpoint}">
+                        <option value="">Loading...</option>
+                    </select>`;
+                    
+                default:
+                    return `<input type="text" class="form-control" placeholder="Unknown field type: ${field.type}">`;
+            }
+        }
+        
+        function removeField(fieldId) {
+            formFields = formFields.filter(f => f.id !== fieldId);
+            renderFormPreview();
+        }
+        
+        async function initializeApiFields() {
+            const apiFields = document.querySelectorAll('.api-field');
+            
+            for (const field of apiFields) {
+                const fieldType = field.dataset.fieldType;
+                const endpoint = field.dataset.endpoint;
+                
+                try {
+                    let apiUrl;
+                    if (fieldType.startsWith('ndx_')) {
+                        apiUrl = `${API_BASE}/ndx/${endpoint}`;
+                    } else if (fieldType.startsWith('geographic_')) {
+                        apiUrl = `${API_BASE}/geographic/${endpoint}`;
+                    }
+                    
+                    const response = await fetch(apiUrl);
+                    const data = await response.json();
+                    
+                    field.innerHTML = '<option value="">Select...</option>';
+                    data.data.forEach(item => {
+                        field.innerHTML += `<option value="${item.id}">${item.name}</option>`;
+                    });
+                    
+                } catch (error) {
+                    field.innerHTML = '<option value="">Error loading data</option>';
+                    console.error(`Failed to load data for ${fieldType}:`, error);
+                }
+            }
+        }
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProvinces();
+            initializeSearchDemos();
+        });
+        
+        // Initialize search demonstration fields
+        async function initializeSearchDemos() {
+            const searchFields = [
+                { id: 'hospitalSearch', endpoint: 'hospitals', placeholder: 'Search hospitals by name or type...' },
+                { id: 'policeSearch', endpoint: 'police-stations', placeholder: 'Search police stations by name or district...' },
+                { id: 'schoolSearch', endpoint: 'schools', placeholder: 'Search schools by name or type...' },
+                { id: 'govOfficeSearch', endpoint: 'government-offices', placeholder: 'Search government offices by type...' }
+            ];
+            
+            for (const field of searchFields) {
+                await initializeSearchField(field);
+            }
+        }
+        
+        async function initializeSearchField({ id, endpoint, placeholder }) {
+            const select = document.getElementById(id);
+            if (!select) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/ndx/${endpoint}`);
+                const data = await response.json();
+                
+                // Clear loading option
+                select.innerHTML = `<option value="">${placeholder}</option>`;
+                
+                // Add options with enhanced data
+                data.data.forEach(item => {
+                    let optionText = item.name;
+                    if (item.district && item.district !== item.name) {
+                        optionText += ` - ${item.district}`;
+                    }
+                    if (item.type && item.type !== item.name) {
+                        optionText += ` (${item.type})`;
+                    }
+                    
+                    const option = document.createElement('option');
+                    option.value = item.id;
+                    option.textContent = optionText;
+                    option.setAttribute('data-district', item.district || '');
+                    option.setAttribute('data-type', item.type || '');
+                    option.setAttribute('data-phone', item.phone || '');
+                    option.setAttribute('data-address', item.address || '');
+                    option.title = item.address || item.name;
+                    
+                    select.appendChild(option);
+                });
+                
+                // Initialize Select2 with enhanced formatting
+                $(select).select2({
+                    placeholder: placeholder,
+                    allowClear: true,
+                    minimumInputLength: 2,
+                    width: '100%',
+                    templateResult: formatSearchResult,
+                    templateSelection: formatSearchSelection,
+                    escapeMarkup: function(markup) { return markup; }
+                });
+                
+            } catch (error) {
+                console.error(`Failed to load ${endpoint}:`, error);
+                select.innerHTML = '<option value="">Error loading data</option>';
+            }
+        }
+        
+        // Enhanced result formatting for search demos
+        function formatSearchResult(item) {
+            if (!item.id) return item.text;
+            
+            const $item = $(item.element);
+            const district = $item.data('district');
+            const type = $item.data('type');
+            const phone = $item.data('phone');
+            const address = $item.data('address');
+            
+            let html = `<div style="padding: 4px 0;">
+                          <div style="font-weight: 500; color: #212529;">${item.text}</div>`;
+            
+            if (type || district) {
+                html += `<div style="font-size: 0.85em; color: #6c757d; margin-top: 2px;">`;
+                if (type) html += `${type}`;
+                if (district && type) html += ` • `;
+                if (district) html += `${district}`;
+                html += `</div>`;
+            }
+            
+            if (phone) {
+                html += `<div style="font-size: 0.8em; color: #28a745; margin-top: 1px;">📞 ${phone}</div>`;
+            }
+            
+            if (address && address !== item.text) {
+                html += `<div style="font-size: 0.8em; color: #6c757d; margin-top: 1px;">📍 ${address}</div>`;
+            }
+            
+            html += `</div>`;
+            return html;
+        }
+        
+        function formatSearchSelection(item) {
+            if (!item.id) return item.text;
+            
+            const $item = $(item.element);
+            const type = $item.data('type');
+            
+            if (type && type !== item.text) {
+                return `${item.text} <span style="font-size: 0.85em; color: #6c757d;">(${type})</span>`;
+            }
+            
+            return item.text;
+        }
+    </script>
+</body>
+</html>

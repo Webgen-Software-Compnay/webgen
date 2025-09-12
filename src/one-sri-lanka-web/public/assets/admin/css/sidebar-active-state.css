@@ -1,0 +1,104 @@
+/**
+ * Sidebar Active State Styles
+ * Custom styles for active navigation items
+ */
+
+/* Active nav links */
+.sidebar .nav-link.active {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+    font-weight: 500;
+}
+
+/* Active nav items */
+.sidebar .nav-item.active > .nav-link {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+    font-weight: 500;
+}
+
+/* Open submenu containers */
+.sidebar .nav-item-submenu.nav-item-open > .nav-link {
+    color: #fff !important;
+}
+
+/* Active submenu items */
+.sidebar .nav-group-sub .nav-item.active > .nav-link {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    color: #fff !important;
+    font-weight: 500;
+    border-left: 3px solid #fff;
+    padding-left: 1.25rem;
+}
+
+/* Ensure submenu items have proper spacing when active */
+.sidebar .nav-group-sub .nav-item.active > .nav-link {
+    margin-left: 0.5rem;
+    border-radius: 0.375rem 0 0 0.375rem;
+}
+
+/* Highlight current page in submenu */
+.sidebar .nav-group-sub .nav-link.active {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    color: #fff !important;
+    font-weight: 600;
+    border-left: 3px solid #fff;
+    padding-left: 1.25rem;
+    margin-left: 0.5rem;
+    border-radius: 0.375rem 0 0 0.375rem;
+}
+
+/* Icon color for active items */
+.sidebar .nav-link.active i,
+.sidebar .nav-item.active > .nav-link i {
+    color: #fff !important;
+    opacity: 1;
+}
+
+/* Badge styling for active items */
+.sidebar .nav-link.active .badge,
+.sidebar .nav-item.active > .nav-link .badge {
+    background-color: rgba(255, 255, 255, 0.3) !important;
+    color: #fff !important;
+}
+
+/* Submenu active state transitions */
+.sidebar .nav-group-sub {
+    transition: all 0.3s ease;
+}
+
+.sidebar .nav-item-submenu.nav-item-open .nav-group-sub {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+/* Hover effects for non-active items */
+.sidebar .nav-link:not(.active):hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Ensure proper contrast for disabled items */
+.sidebar .nav-link.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Active state for nested submenus */
+.sidebar .nav-group-sub .nav-item-submenu.nav-item-open > .nav-link {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .sidebar .nav-group-sub .nav-link.active {
+        margin-left: 0.25rem;
+        padding-left: 1rem;
+    }
+    
+    .sidebar .nav-group-sub .nav-item.active > .nav-link {
+        margin-left: 0.25rem;
+        padding-left: 1rem;
+    }
+}

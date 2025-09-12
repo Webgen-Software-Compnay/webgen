@@ -405,14 +405,67 @@ class ComplaintCategoryController extends Controller
      */
     public function getActive()
     {
-        $categories = Cache::remember('complaint_categories_active', 3600, function () {
-            return ComplaintCategory::where('status', SystemEnums::STATUS_ACTIVE)
-                ->with('parent')
-                ->orderBy('name')
-                ->get();
-        });
+        try {
+            $categories = Cache::remember('complaint_categories_active', 3600, function () {
+                return ComplaintCategory::where('status', SystemEnums::STATUS_ACTIVE)
+                    ->with('parent')
+                    ->orderBy('name')
+                    ->get();
+            });
 
-        return ApiResponse::success('Active categories retrieved successfully', $categories);
+            return ApiResponse::success('Active categories retrieved successfully', $categories);
+        } catch (\Exception $e) {
+            return ApiResponse::error('Failed to retrieve active categories', 500);
+        }
+    }
+
+    /**
+     * Get all active complaint categories with formatted data for UI
+     */
+    public function getAllActiveForUI()
+    {
+        try {
+            $categories = Cache::remember('complaint_categories_active_ui', 3600, function () {
+                return ComplaintCategory::where('status', SystemEnums::STATUS_ACTIVE)
+                    ->with(['parent', 'children'])
+                    ->orderBy('name')
+                    ->get()
+                    ->map(function ($category) {
+                        return [
+                            'id' => $category->id,
+                            'name' => $category->name,
+                            'slug' => $category->slug,
+                            'description' => $category->description ?? '',
+                            'category_type' => $category->category_type,
+                            'status' => $category->status,
+                            'parent_id' => $category->parent_id,
+                            'parent_name' => $category->parent ? $category->parent->name : null,
+                            'children_count' => $category->children->count(),
+                            'has_children' => $category->children->count() > 0,
+                            'level' => $category->parent_id ? 'sub' : 'main',
+                            'created_at' => $category->created_at->format('Y-m-d H:i:s'),
+                            'updated_at' => $category->updated_at->format('Y-m-d H:i:s'),
+                        ];
+                    });
+            });
+
+            // Separate main and sub categories for better organization
+            $mainCategories = $categories->where('level', 'main')->values();
+            $subCategories = $categories->where('level', 'sub')->values();
+
+            $responseData = [
+                'all_categories' => $categories->values(),
+                'main_categories' => $mainCategories,
+                'sub_categories' => $subCategories,
+                'total_count' => $categories->count(),
+                'main_count' => $mainCategories->count(),
+                'sub_count' => $subCategories->count(),
+            ];
+
+            return ApiResponse::success('Active categories for UI retrieved successfully', $responseData);
+        } catch (\Exception $e) {
+            return ApiResponse::error('Failed to retrieve active categories for UI', 500);
+        }
     }
 
     /**
@@ -505,7 +558,7 @@ class ComplaintCategoryController extends Controller
                 ->groupBy('category_type')
                 ->get(),
             'generated_at' => now()->format('Y-m-d H:i:s'),
-            'generated_by' => auth()->user()->name ?? 'System',
+            'generated_by' => 'System',
         ];
 
         return ApiResponse::success('Reports generated successfully', $reports);
@@ -516,7 +569,7 @@ class ComplaintCategoryController extends Controller
      */
     public function getUsageReport()
     {
-        $usageReport = ComplaintCategory::select('id', 'name', 'category_type', 'status')
+        $usageReport = ComplaintCategory::select(['id', 'name', 'category_type', 'status'])
             ->withCount(['complaints as total_complaints'])
             ->withCount(['complaints as active_complaints' => function ($query) {
                 $query->where('status', 'active');
@@ -544,6 +597,190 @@ class ComplaintCategoryController extends Controller
         ];
 
         return ApiResponse::success('Usage report generated successfully', $reportData);
+    }
+
+    /**
+     * Bulk operations for categories
+     */
+    public function bulkAction(Request $request)
+    {
+        $validated = $request->validate([
+            'action' => 'required|in:activate,deactivate,delete',
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:complaint_categories,id'
+        ]);
+
+        $action = $validated['action'];
+        $ids = $validated['ids'];
+        $affected = 0;
+
+        try {
+            switch ($action) {
+                case 'activate':
+                    $affected = ComplaintCategory::whereIn('id', $ids)
+                        ->update(['status' => SystemEnums::STATUS_ACTIVE]);
+                    break;
+
+                case 'deactivate':
+                    $affected = ComplaintCategory::whereIn('id', $ids)
+                        ->update(['status' => SystemEnums::STATUS_INACTIVE]);
+                    break;
+
+                case 'delete':
+                    // Check for dependencies before deleting
+                    $categoriesWithChildren = ComplaintCategory::whereIn('id', $ids)
+                        ->has('children')
+                        ->count();
+                    
+                    if ($categoriesWithChildren > 0) {
+                        return ApiResponse::error('Some categories have subcategories and cannot be deleted', 422);
+                    }
+
+                    $categoriesWithComplaints = ComplaintCategory::whereIn('id', $ids)
+                        ->has('complaints')
+                        ->count();
+                    
+                    if ($categoriesWithComplaints > 0) {
+                        return ApiResponse::error('Some categories have complaints and cannot be deleted', 422);
+                    }
+
+                    $affected = ComplaintCategory::whereIn('id', $ids)->delete();
+                    break;
+            }
+
+            // Clear cache after bulk operations
+            $this->clearCategoriesCache();
+
+            return ApiResponse::success("Bulk {$action} completed successfully", [
+                'affected_count' => $affected,
+                'action' => $action
+            ]);
+
+        } catch (\Exception $e) {
+            return ApiResponse::error("Bulk {$action} failed: " . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Export categories data
+     */
+    public function export(Request $request)
+    {
+        $format = $request->get('format', 'json');
+        $includeInactive = $request->boolean('include_inactive', false);
+
+        $query = ComplaintCategory::with(['parent', 'children']);
+        
+        if (!$includeInactive) {
+            $query->where('status', SystemEnums::STATUS_ACTIVE);
+        }
+
+        $categories = $query->orderBy('name')->get();
+
+        $exportData = $categories->map(function ($category) {
+            return [
+                'id' => $category->id,
+                'name' => $category->name,
+                'slug' => $category->slug,
+                'description' => $category->description,
+                'category_type' => $category->category_type,
+                'status' => $category->status,
+                'parent_name' => $category->parent ? $category->parent->name : null,
+                'children_count' => $category->children->count(),
+                'created_at' => $category->created_at->format('Y-m-d H:i:s'),
+                'updated_at' => $category->updated_at->format('Y-m-d H:i:s'),
+            ];
+        });
+
+        switch ($format) {
+            case 'csv':
+                // Here you would implement CSV export logic
+                return ApiResponse::success('CSV export not implemented yet', []);
+            
+            case 'excel':
+                // Here you would implement Excel export logic
+                return ApiResponse::success('Excel export not implemented yet', []);
+            
+            default:
+                return ApiResponse::success('Categories exported successfully', [
+                    'format' => $format,
+                    'count' => $exportData->count(),
+                    'data' => $exportData
+                ]);
+        }
+    }
+
+    /**
+     * Import categories from data
+     */
+    public function import(Request $request)
+    {
+        $validated = $request->validate([
+            'categories' => 'required|array|min:1',
+            'categories.*.name' => 'required|string|max:255',
+            'categories.*.slug' => 'nullable|string|max:255',
+            'categories.*.description' => 'nullable|string|max:1000',
+            'categories.*.category_type' => 'required|string',
+            'categories.*.status' => 'nullable|in:' . SystemEnums::STATUS_ACTIVE . ',' . SystemEnums::STATUS_INACTIVE,
+            'categories.*.parent_slug' => 'nullable|string|exists:complaint_categories,slug'
+        ]);
+
+        $imported = 0;
+        $errors = [];
+
+        try {
+            foreach ($validated['categories'] as $index => $categoryData) {
+                try {
+                    // Auto-generate slug if not provided
+                    if (empty($categoryData['slug'])) {
+                        $categoryData['slug'] = Str::slug($categoryData['name']);
+                        
+                        // Ensure slug uniqueness
+                        $originalSlug = $categoryData['slug'];
+                        $counter = 1;
+                        while (ComplaintCategory::where('slug', $categoryData['slug'])->exists()) {
+                            $categoryData['slug'] = $originalSlug . '-' . $counter;
+                            $counter++;
+                        }
+                    }
+
+                    // Set default status
+                    if (!isset($categoryData['status'])) {
+                        $categoryData['status'] = SystemEnums::STATUS_ACTIVE;
+                    }
+
+                    // Handle parent relationship
+                    if (!empty($categoryData['parent_slug'])) {
+                        $parent = ComplaintCategory::where('slug', $categoryData['parent_slug'])->first();
+                        $categoryData['parent_id'] = $parent ? $parent->id : null;
+                    }
+
+                    unset($categoryData['parent_slug']);
+
+                    ComplaintCategory::create($categoryData);
+                    $imported++;
+
+                } catch (\Exception $e) {
+                    $errors[] = [
+                        'index' => $index,
+                        'name' => $categoryData['name'] ?? 'Unknown',
+                        'error' => $e->getMessage()
+                    ];
+                }
+            }
+
+            // Clear cache after import
+            $this->clearCategoriesCache();
+
+            return ApiResponse::success('Import completed', [
+                'imported_count' => $imported,
+                'error_count' => count($errors),
+                'errors' => $errors
+            ]);
+
+        } catch (\Exception $e) {
+            return ApiResponse::error('Import failed: ' . $e->getMessage(), 500);
+        }
     }
 
     /**

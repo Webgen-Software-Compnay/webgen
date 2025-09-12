@@ -19,6 +19,31 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | API Base URL
+    |--------------------------------------------------------------------------
+    |
+    | This value is the base URL for the API service that handles complaints
+    | and form management. This allows the web application to communicate
+    | with the backend API service.
+    |
+    */
+
+    'api_base_url' => env('API_BASE_URL', 'http://127.0.0.1:8080/api'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | One Sri Lanka API Base URL
+    |--------------------------------------------------------------------------
+    |
+    | This value is the base URL for the One Sri Lanka API service that handles
+    | complaints and form management specifically for this application.
+    |
+    */
+
+    'one_sri_lanka_api_url' => env('ONE_SRI_LANKA_API_URL', 'http://localhost:8080/api'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

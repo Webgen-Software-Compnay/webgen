@@ -45,6 +45,12 @@ class ComplaintCategory extends Model
         return $this->hasMany(ComplaintCategory::class, 'parent_id');
     }
 
+    // Common complaints relationship
+    public function commonComplaints()
+    {
+        return $this->hasMany(CommonComplaint::class, 'complaint_category_id');
+    }
+
     // Complaints relationship - Add this missing relationship
     // public function complaints()
     // {
